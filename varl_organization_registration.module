@@ -1,0 +1,61 @@
+<?php
+/**
+ * @file
+ * Code for the Volunteer Arlington Organization Registration feature.
+ */
+
+define('VOL_COORD_GROUP', 6);
+
+/**
+ * Implements hook_civicrm_post().
+ */
+function varl_organization_registration_civicrm_post($op, $objectName, $groupId, &$contactIds) {
+  if ($op === 'create' && $objectName === 'GroupContact' && $groupId == VOL_COORD_GROUP) {
+    foreach ($contactIds as $cid) {
+      try {
+        $email = civicrm_api3('Contact', 'getvalue', array(
+          'id' => $cid,
+          'return' => 'email',
+        ));
+      } catch (Exception $e) {
+        continue;
+      }
+
+      // it's theoretically possible that a Drupal user exists with the given email
+      // address but that it doesn't have a UFJoin, so we'll check for the existence
+      // of the actual account
+      if (!user_load_by_mail($email)) {
+        $drupalUser = _hv_createAccount($email);
+        if ($drupalUser) {
+          $operation = 'register_no_approval_required';
+          _user_mail_notify($operation, $drupalUser);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Creates a Drupal user.
+ *
+ * Assumes that the nonexistence of the Drupal user has already been validated.
+ *
+ * @param string $email
+ * @return mixed
+ *   Drupal user object if a new user was created,
+ *   FALSE if creation failed
+ */
+function _hv_createAccount($email) {
+  $result = FALSE;
+
+  $params = array(
+    'init' => $email,
+    'name' => $email,
+    'mail' => $email,
+    'pass' => md5(uniqid(rand(), true)),
+    'status' => 1,
+  );
+  $result = user_save(NULL, $params);
+
+  return $result;
+}
