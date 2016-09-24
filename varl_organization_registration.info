@@ -6,4 +6,4 @@ version = 7.x-0.9
 dependencies[] = civicrm
 dependencies[] = webform
 dependencies[] = webform_civicrm
-project path = sites/all/modules/custom
+project path = sites/all/modules
